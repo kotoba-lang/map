@@ -1,5 +1,7 @@
 {:paths ["src" "resources"]
- :deps {}
+ :deps {io.github.kotoba-lang/quad-store {:git/sha "e4c1d51d35faa1f1cb48cf06d2cbc69783fb7e72"}
+        io.github.kotoba-lang/kqe {:git/sha "44d5c2ae6b44143815a6bddca6154dd0b7198129"}
+        io.github.kotoba-lang/kotoba-client {:git/sha "854321cffe160e40479b49805b8abe101e2405f5"}}
  :aliases
  {:test {:extra-paths ["test"]
          :extra-deps {io.github.cognitect-labs/test-runner

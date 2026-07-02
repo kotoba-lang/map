@@ -11,6 +11,11 @@ No network, no I/O (except a JVM-only `String`/byte-array conversion in
 `kotoba.map.mvt`, guarded by `#?(:clj ...)`). Portable across JVM /
 ClojureScript / SCI / GraalVM.
 
+**`kotoba.map.data` is the one exception** — see its own section below. It
+is not part of the `kotoba.map` aggregate namespace's "no I/O" namespace
+list; it is an opt-in data layer with I/O reached only through injected
+ports, per this repo's own port-not-embed convention.
+
 ## Namespaces
 
 | Namespace | Ported from (Rust) | What it does |
@@ -24,6 +29,48 @@ ClojureScript / SCI / GraalVM.
 | `kotoba.map.fly` | The fly-animation block of `KamiMap::frame` + `fly_to` | Fly-to camera easing as a pure state-transition step function. |
 | `kotoba.map.tile_url` | `get_dem_tile_url` | `{z}/{x}/{y}` tile URL templating. |
 | `kotoba.map.input` | `input.rs`'s Globe/Cosmic drag branch, `on_pointer_down`/`up` | Pointer-drag panning for Globe/Cosmic projection modes, as pure state transitions (no `unsafe static mut`). |
+
+## Data layer: `kotoba.map.data`
+
+Client-side-first tile data, wired to the CLJC restoration of kotoba's
+content-addressed graph (`90-docs/adr/2607010930-clj-wgsl-migration.md`
+Phase 6, `kotoba-lang/root` superproject): kotobase.net serves only
+`block.get` CID lookups (delivery-only), and the browser resolves +
+assembles tiles client-side.
+
+```
+tile {:z :x :y} + layer
+  -> quad-store.core index lookup (via kqe.core/query)     -- resolve-tile-cid
+  -> CID
+  -> kotoba-client.core/hydrate-via-blocks (CID-verified)   -- fetch-tile-layer
+  -> raw MVT bytes
+  -> kotoba.map.mvt/decode-layer-features                   -- fetch-tile-layer
+  -> {:features [...]}
+```
+
+```clojure
+(require '[quad-store.core :as qs] '[kotoba.map.data :as data])
+
+;; however the tile index gets populated (sync/commit from kotobase.net):
+(def db (data/index-tile-layer (qs/empty-db) {:z 14 :x 2620 :y 6332} "roads" "bafy...cid"))
+
+;; client-side fetch + decode, ports injected (no owned I/O):
+(data/fetch-tile-layer {:db db :fetch-block my-block-get-fn :store my-store}
+                        {:z 14 :x 2620 :y 6332} "roads")
+;; => {:features [...]}  (nil if the tile/layer isn't indexed)
+```
+
+This is an **alternative** data source, not a replacement for
+`kotoba.map.tile-url`'s `{z}/{x}/{y}` HTTP template — a host with only a
+conventional XYZ tile server still uses `tile-url`. `kotoba.map.data` is
+for hosts that resolve tiles through kotoba's IPLD graph instead.
+
+**Not in this namespace** (tracked follow-ups, not silently omitted):
+visible-tile computation from a viewport (depends on the not-yet-ported
+`kami-geo` crate, see "Unported" below — this namespace takes tile keys as
+input, it does not compute them), spatial (H3) tile-index sharding
+strategy, and populating the tile index in the first place (this
+namespace only reads it).
 
 ## Unported (out of scope) — and why
 
