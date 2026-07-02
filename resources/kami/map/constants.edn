@@ -1,0 +1,35 @@
+;; kotoba-map constants — extracted from kami-map/src/lib.rs (Rust) hardcoded
+;; literals, per the kami-engine -> kotoba clj-wgsl migration (ADR-2607010930
+;; Phase 4). This EDN is the canonical, tooling-readable source of truth;
+;; src/kotoba/map/constants.cljc mirrors these values as plain defs so the
+;; portable .cljc core has no I/O dependency on reading this resource.
+{;; Projection-mode zoom thresholds (kami-map/src/lib.rs).
+ ;; Globe projection covers zoom 0.2-5.5 ("world / hemisphere / continent"
+ ;; range where Web-Mercator Flat mode shows pixelated edges / high-lat
+ ;; distortion); Flat takes over above 5.5 (metro-sized areas, Mercator
+ ;; distortion imperceptible).
+ :globe-zoom-threshold 5.5
+ :cosmic-zoom-threshold 0.2
+
+ ;; Scene-scale radii, all derived from GLOBE_RADIUS.
+ :globe-radius 2048.0
+ :moon-orbit-radius-factor 1.8
+ :geo-ring-radius-factor 2.6
+ :solar-system-radius-factor 38.0
+ :galaxy-radius-factor 220.0
+ :universe-radius-factor 960.0
+
+ ;; Web Mercator latitude clamp (atan(sinh(pi)) in degrees) — the maximum
+ ;; latitude representable in the projection used by clamp_lat / tile math.
+ :max-lat 85.05112877980659
+
+ ;; Zoom range clamp used throughout (set_zoom, on_wheel, fit_bounds, frame).
+ :zoom-min -1.5
+ :zoom-max 22.0
+
+ ;; Default tile endpoints (MapOptions serde defaults).
+ :default-tile-url "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+ :default-dem-tile-url "https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png"
+
+ ;; Earth reference radius (meters) used by orbital scale-compression math.
+ :earth-radius-m 6378137.0}
