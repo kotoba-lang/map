@@ -43,8 +43,8 @@
   +Y is up; matches the Rust source's axis convention (equator at y=0,
   prime meridian/equator crossing at -Z)."
   [lng lat radius]
-  (let [lng-rad (Math/toRadians (double lng))
-        lat-rad (Math/toRadians (double lat))
+  (let [lng-rad (k/to-radians (double lng))
+        lat-rad (k/to-radians (double lat))
         cos-lat (Math/cos lat-rad)
         sin-lat (Math/sin lat-rad)
         sin-lng (Math/sin lng-rad)
@@ -63,8 +63,8 @@
   degrees, latitude clamped via `kotoba.map.projection/clamp-lat`)."
   [position]
   (let [[nx ny nz] (v-normalize-or-zero position)
-        lat (Math/toDegrees (Math/asin ny))
-        lng (Math/toDegrees (Math/atan2 nx (- nz)))]
+        lat (k/to-degrees (Math/asin ny))
+        lng (k/to-degrees (Math/atan2 nx (- nz)))]
     [lng (proj/clamp-lat lat)]))
 
 (defn ray-sphere-hit

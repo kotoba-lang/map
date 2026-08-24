@@ -84,16 +84,34 @@
              (bit-shift-left (b 3) 24))
      (min (+ pos 4) n)]))
 
-(defn read-fixed64
-  "Read 8 little-endian bytes as an unsigned 64-bit int (as a Clojure long
-  where representable). Returns `[u64 new-pos]`."
+(def ^:private byte-scale
+  ;; 2^(8*i). Literals, not `(bit-shift-left 1 (* 8 i))`: cljs takes shift
+  ;; counts mod 32, so that expression is 1 at i=4 and 2^24 at i=7. Each of
+  ;; these is a power of two, exact as a JVM long and as a JS double alike.
+  [1 256 65536 16777216 4294967296 1099511627776 281474976710656 72057594037927936])
+
+(defn fixed64-bytes
+  "The 8 little-endian bytes at `pos`, zero-padded past the end.
+  Returns `[bytes new-pos]`."
   [buf pos]
-  (let [n (count buf)
-        b (fn [i] (if (< (+ pos i) n) (long (nth buf (+ pos i))) 0))]
-    [(reduce (fn [acc i] (bit-or acc (bit-shift-left (b i) (* 8 i))))
-             0
-             (range 8))
+  (let [n (count buf)]
+    [(mapv (fn [i] (if (< (+ pos i) n) (bit-and (nth buf (+ pos i)) 0xff) 0)) (range 8))
      (min (+ pos 8) n)]))
+
+(defn read-fixed64
+  "Read 8 little-endian bytes as an unsigned 64-bit int. Returns `[u64 new-pos]`.
+
+  This used to accumulate with `(bit-shift-left b (* 8 i))`. cljs takes shift
+  counts mod 32, so bytes 4 through 7 were shifted by 0, 8, 16 and 24 -- they
+  landed on top of bytes 0 through 3 instead of above them.
+
+  On ClojureScript a value above 2^53 is not exactly representable whatever the
+  arithmetic; that limit is the runtime's. Decoding a float64 no longer goes
+  through this function at all -- see `read-f64`, which never forms the integer."
+  [buf pos]
+  (let [[bs new-pos] (fixed64-bytes buf pos)]
+    [(reduce (fn [acc i] (+ acc (* (nth bs i) (nth byte-scale i)))) 0 (range 8))
+     new-pos]))
 
 (defn skip-field
   "Advance `pos` past a field of the given wire type without decoding it."
@@ -163,14 +181,33 @@
              (.setUint32 dv 0 bits true)
              (.getFloat32 dv 0 true))))
 
-(defn- f64-bits->double [bits]
-  #?(:clj  (Double/longBitsToDouble bits)
-     :cljs (let [dv (js/DataView. (js/ArrayBuffer. 8))
-                 lo (bit-and bits 0xffffffff)
-                 hi (bit-and (unsigned-bit-shift-right bits 32) 0xffffffff)]
-             (.setUint32 dv 0 lo true)
-             (.setUint32 dv 4 hi true)
+(defn- f64-from-bytes
+  "The IEEE-754 double whose little-endian representation is `bs`.
+
+  The `:cljs` branch used to take a u64 and split it with
+  `(unsigned-bit-shift-right bits 32)` for the high word -- which on
+  ClojureScript is `bits >>> 0`, the LOW word. The high word equalled the low
+  word, in a branch that exists only for ClojureScript. Measured 2026-08-25:
+  a Value message carrying 3.14 decoded as 4.293144868248468e+86 on nbb and
+  3.14 on the JVM.
+
+  Taking bytes rather than an assembled integer removes the second problem
+  underneath it as well: a float64 bit pattern is routinely above 2^53, where a
+  JS number cannot hold it exactly, so no arithmetic on the u64 could have been
+  correct. Here the bytes go straight into the view."
+  [bs]
+  #?(:clj  (Double/longBitsToDouble
+            (reduce (fn [acc i] (bit-or acc (bit-shift-left (long (nth bs i)) (* 8 i))))
+                    0 (range 8)))
+     :cljs (let [dv (js/DataView. (js/ArrayBuffer. 8))]
+             (dotimes [i 8] (.setUint8 dv i (nth bs i)))
              (.getFloat64 dv 0 true))))
+
+(defn read-f64
+  "Read 8 little-endian bytes at `pos` as a double. Returns `[double new-pos]`."
+  [buf pos]
+  (let [[bs new-pos] (fixed64-bytes buf pos)]
+    [(f64-from-bytes bs) new-pos]))
 
 (defn decode-value-message
   "Decode a MVT `Value` message payload into a Clojure scalar: string,
@@ -186,7 +223,7 @@
         (let [[bits _] (read-fixed32 buf pos')] (f32-bits->double bits))
 
         (and (= field 3) (= wire wire-64bit))
-        (let [[bits _] (read-fixed64 buf pos')] (f64-bits->double bits))
+        (let [[value _] (read-f64 buf pos')] value)
 
         (and (= field 4) (= wire wire-varint))
         (let [[v _] (read-varint buf pos')] v)

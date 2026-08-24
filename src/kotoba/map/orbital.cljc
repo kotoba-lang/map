@@ -37,7 +37,7 @@
   (let [phase (if (> period-s 1.0)
                 (/ (* now-s 2.0 Math/PI) period-s)
                 0.0)]
-    (+ (Math/toRadians mean-longitude-deg) phase)))
+    (+ (k/to-radians mean-longitude-deg) phase)))
 
 (defn orbital-scene-position
   "3D scene position (`[x y z]`) on a Keplerian-ish ellipse of semi-major
@@ -47,7 +47,7 @@
   (let [e (max 0.0 (min 0.98 eccentricity))
         r (/ (* radius (- 1.0 (* e e)))
              (max 0.2 (+ 1.0 (* e (Math/cos phase)))))
-        incl (Math/toRadians inclination-deg)]
+        incl (k/to-radians inclination-deg)]
     [(* r (Math/cos phase))
      (* r (Math/sin phase) (Math/sin incl))
      (* r (Math/sin phase) (Math/cos incl))]))
@@ -57,8 +57,8 @@
   (right ascension / declination) anchor — e.g. a star/deep-sky-object
   placement on the celestial sphere."
   [ra-deg dec-deg radius]
-  (let [ra (Math/toRadians ra-deg)
-        dec (Math/toRadians dec-deg)]
+  (let [ra (k/to-radians ra-deg)
+        dec (k/to-radians dec-deg)]
     [(* radius (Math/cos dec) (Math/cos ra))
      (* radius (Math/sin dec))
      (* radius (Math/cos dec) (Math/sin ra))]))

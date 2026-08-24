@@ -19,7 +19,7 @@
 
 (deftest orbital-phase-angle-test
   (testing "period <= 1.0 is stationary at mean longitude"
-    (is (close? (Math/toRadians 90.0) (orbital/orbital-phase-angle 0.0 90.0 100.0))))
+    (is (close? (k/to-radians 90.0) (orbital/orbital-phase-angle 0.0 90.0 100.0))))
   (testing "quarter period elapsed adds pi/2"
     (is (close? (/ Math/PI 2.0) (orbital/orbital-phase-angle 100.0 0.0 25.0)))))
 
