@@ -139,3 +139,46 @@
     (is (= [255 0 128] (mvt/normalize-bytes #?(:clj (byte-array [-1 0 -128])
                                                 :cljs [-1 0 -128]))))
     (is (= [255 0 128] (mvt/normalize-bytes (map identity [-1 0 -128]))))))
+
+;; ---------------------------------------------------------------------------
+;; Fixed64 fields. These run on BOTH runtimes, which is the point of them.
+;;
+;; Nothing in this file used to decode a `Value` carrying a double. That is why
+;; nobody noticed that `f64-bits->double`'s `:cljs` branch -- a branch written
+;; for ClojureScript and only ever executed on the JVM, because this repository
+;; had no ClojureScript runner -- computed its high word as
+;; `(unsigned-bit-shift-right bits 32)`, which in JavaScript is `bits >>> 0`.
+;; The high word equalled the low word.
+;;
+;; Measured 2026-08-25 before the fix: 3.14 decoded as 4.293144868248468e+86 on
+;; nbb and as 3.14 on the JVM. The eight tests already here all passed on both.
+;; ---------------------------------------------------------------------------
+
+(defn- value-message-with-double
+  "An MVT `Value` payload carrying `le-bytes` in field 3 (double, wire type 1).
+  Tag is `(3 << 3) | 1` = 25."
+  [le-bytes]
+  (vec (cons 25 le-bytes)))
+
+(deftest decode-value-double-uses-both-words
+  (testing "3.14 -- 0x40091EB851EB851F, whose high and low words differ"
+    (is (= 3.14 (mvt/decode-value-message
+                 (value-message-with-double [0x1F 0x85 0xEB 0x51 0xB8 0x1E 0x09 0x40])))))
+  (testing "1.0 -- 0x3FF0000000000000, everything in the high word"
+    (is (= 1.0 (mvt/decode-value-message
+                (value-message-with-double [0 0 0 0 0 0 0xF0 0x3F])))))
+  (testing "a negative, so the sign bit is byte 7's top bit"
+    (is (= -2.5 (mvt/decode-value-message
+                 (value-message-with-double [0 0 0 0 0 0 0x04 0xC0])))))
+  (testing "zero, where a high word equal to the low word is accidentally right"
+    (is (= 0.0 (mvt/decode-value-message (value-message-with-double (repeat 8 0)))))))
+
+(deftest read-fixed64-places-every-byte-at-its-own-weight
+  ;; `(bit-shift-left b (* 8 i))` put bytes 4..7 on top of bytes 0..3 on cljs.
+  (is (= 1 (first (mvt/read-fixed64 [1 0 0 0 0 0 0 0] 0))))
+  (is (= 4294967296 (first (mvt/read-fixed64 [0 0 0 0 1 0 0 0] 0)))
+      "byte 4 is 2^32, not 1")
+  (is (= 72057594037927936 (first (mvt/read-fixed64 [0 0 0 0 0 0 0 1] 0)))
+      "byte 7 is 2^56, not 2^24")
+  (is (= 4294967297 (first (mvt/read-fixed64 [1 0 0 0 1 0 0 0] 0)))
+      "bytes 0 and 4 together -- the case where folding is visible as a sum"))
