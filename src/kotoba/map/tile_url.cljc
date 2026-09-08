@@ -7,7 +7,7 @@
   only exposed this for DEM tiles, but the same `{z}/{x}/{y}` template
   convention is used for `default-tile-url` too (see
   `kotoba.map.constants`)."
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 (defn template-url
   "Substitute `{z}`, `{x}`, `{y}` placeholders in `template` with the given
