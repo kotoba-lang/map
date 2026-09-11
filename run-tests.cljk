@@ -15,7 +15,7 @@
    required is not being run. `scripts/verify-cljs-runner-completeness.cljs` in
    the superproject measures this file against the directory.
 
-     nbb --classpath \"$(clojure -Spath -M:test)\" run-tests.cljs"
+     nbb --classpath \"$(clojure -Spath -M:test)\" run-tests.cljk"
   (:require [cljs.test :as t]
             [kotoba.map-test]
             [kotoba.map.color-test]
