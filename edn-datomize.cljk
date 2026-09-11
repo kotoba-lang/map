@@ -1,4 +1,4 @@
-#!/usr/bin/env nbb
+#!/usr/bin/env kbb
 ;; edn-datomize.cljk — EDN → Datomic/Datascript tx-data conversion tool
 ;; (kotoba-lang/map copy, adapted from com-junkawasaki/root manifest/edn-datomize.cljk).
 ;;
@@ -16,7 +16,7 @@
 ;; Datascript compatible; no Datomic-only keys like :db.install/_attribute).
 ;;
 ;; Usage:
-;;   nbb edn-datomize.cljk wrap-map <path> <ns>
+;;   kbb --backend sci edn-datomize.cljk wrap-map <path> <ns>
 
 (require '[clojure.edn :as edn]
          '[kotoba.lang.text :as str])
@@ -168,7 +168,7 @@
   (let [[mode a b] args]
     (case mode
       "wrap-map" (wrap-map! a b)
-      (do (println "usage: nbb edn-datomize.cljk wrap-map <path> <ns>")
+      (do (println "usage: kbb --backend sci edn-datomize.cljk wrap-map <path> <ns>")
           (js/process.exit 1)))))
 
 (apply -main *command-line-args*)
