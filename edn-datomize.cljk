@@ -18,7 +18,7 @@
 ;; Usage:
 ;;   kbb --backend sci edn-datomize.cljk wrap-map <path> <ns>
 
-(require '[clojure.edn :as edn]
+(require '[kotoba.lang.edn :as edn]
          '[kotoba.lang.text :as str])
 
 (def fs (js/require "node:fs"))
