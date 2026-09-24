@@ -1,5 +1,5 @@
 (ns kotoba.map-test
-  (:require [clojure.test :refer [deftest is]]
+  (:require [kotoba.test :refer [deftest is]]
             [kotoba.map :as m]))
 
 (deftest namespaces-list-test

@@ -1,5 +1,5 @@
 (ns kotoba.map.tile-url-test
-  (:require [clojure.test :refer [deftest is]]
+  (:require [kotoba.test :refer [deftest is]]
             [kotoba.map.constants :as k]
             [kotoba.map.tile-url :as tile-url]))
 
