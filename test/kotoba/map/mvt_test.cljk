@@ -4,7 +4,7 @@
   empty_pbf_yields_no_features). The rest are round-trip tests this port adds
   since the Rust source had no real-PBF fixture test — a minimal PBF encoder
   is built locally here (test-only) to construct synthetic MVT tiles."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [kotoba.map.mvt :as mvt]))
 
 ;; ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 (ns kotoba.map.data-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [quad-store.core :as qs]
             [kotoba-client.core :as kc]
             [kotoba.map.data :as data]))
